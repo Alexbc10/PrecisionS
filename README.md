@@ -128,16 +128,17 @@ first** (`precisionscheduler-v1` → `-v2`) or installed iPads keep serving the 
 On an iPad the board works by direct manipulation:
 
 - **Finger on a block → moves that block**, immediately. You grabbed the job, so you move the job.
+- **Finger on a drop → drags it onto the schedule**, same as on a mouse.
 - **Finger on empty grid → scrolls** the board.
-- **Two fingers anywhere → scrolls**, including over blocks.
-- **Tap a block (without moving it) → its menu**, and the block expands so you can read the note.
-- **Drops don't drag on touch** — the list stays scrollable. **Tap or hold a drop** and pick a
-  crew straight from its menu, which also works when the board is scrolled out of view.
+- **Two fingers anywhere → scrolls**, including over blocks and over a long drops list.
+- **Press and hold → the menu**, for blocks, drops, crew headers, names and Bible rows alike.
+- **Quick tap a block → expands it** so a clipped note can be read. Tap again to collapse.
 
-The Bible and the drops list scroll normally with one finger — there's nothing draggable in
-them, so there's no ambiguity.
+A long drops list can also be emptied without dragging at all: **hold a drop** and pick a
+crew straight from its menu, which works even when the board is scrolled out of view.
 
-Mouse behaviour is unchanged throughout: drag straight away, right-click for menus.
+The Bible scrolls normally with one finger. Mouse behaviour is unchanged throughout: drag
+straight away, right-click for menus.
 
 *Note: `touch-action` values are static and must stay that way. iOS Safari decides
 scroll-vs-drag before any script runs, so toggling it at runtime does not reliably work —
