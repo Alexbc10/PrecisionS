@@ -564,8 +564,6 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
    deliberate targets. Blocks and drops cover most of the screen, so a finger starting on
    one must be able to SCROLL the page. They only capture the gesture once tapped
    ("armed"), which is what makes drag-to-move possible without trapping every swipe. */
-.hint-touch{display:none}
-@media (pointer:coarse){ .hint-mouse{display:none} .hint-touch{display:inline} }
 .wblk,.person,.grip,.grip-top{touch-action:none}
 .blk,.drop{touch-action:pan-y}
 .blk.armed,.drop.armed{touch-action:none}
@@ -648,7 +646,6 @@ footer b{color:var(--text-2)}
     <div class="sec-title">
       <span>01</span> The Bible — Job Registry
       <button class="addbtn" id="newjob" title="Create a new job">+</button>
-      <span class="hint">Right-click a job for drops, links and status · click the circle to sign off a work order</span>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -664,20 +661,12 @@ footer b{color:var(--text-2)}
         <tbody id="bible"></tbody>
       </table>
     </div>
-    <footer>
-      Three jobs share <b>2200 seaview dr</b> — a strata with a separate file per unit.
-      Address is not an identifier; the <b>job number</b> is. Work orders can be moved to a
-      different job when something is unbillable, so they aren't identity either.
-      Completed jobs stay visible, tinted grey — never hidden or archived.
-    </footer>
   </section>
 
   <!-- ============ BOARD ============ -->
   <section class="view" id="view-board">
     <div class="sec-title">
       <span>02</span> Daily Board
-      <span class="hint hint-mouse">Drag blocks between crews, times, and back to Drops · drag the top or bottom edge to resize · drag a name onto a column · right-click a block to text/cancel it · right-click a crew header to text their whole day</span>
-      <span class="hint hint-touch">Tap a block to pick it up, then drag it · swipe anywhere to scroll · press and hold for the menu · hold a drop to send it straight to a crew</span>
     </div>
 
     <div class="board">
@@ -702,7 +691,6 @@ footer b{color:var(--text-2)}
         <div class="ctitle">Crew available
           <button class="notebtn" id="managecrew" title="Add, edit or remove technicians">&#9998; Manage</button></div>
         <div id="people"></div>
-        <div class="emptyhint" style="margin-top:5px">Drag a name onto a column. Click a name in a column header to take them out.</div>
       </div>
     </div>
 
@@ -718,7 +706,6 @@ footer b{color:var(--text-2)}
     <div class="sec-title">
       <span>03</span> Weekly Board <span id="wmonth" style="font-family:var(--font);font-size:12px;
         font-weight:700;color:var(--text-3);letter-spacing:.5px"></span>
-      <span class="hint">Drag blocks between days · click a day to open it on the Daily Board · hover a block to read its note</span>
     </div>
     <div class="wlegend" id="wlegend"></div>
     <div id="week"></div>
@@ -799,6 +786,8 @@ footer b{color:var(--text-2)}
   <button data-act="s-waiting">Mark waiting</button>
   <button data-act="s-paused">Mark paused</button>
   <button data-act="s-done">Mark completed</button>
+  <hr>
+  <button data-act="deljob">&#128465; Delete job</button>
 </div>
 
 <div id="sms-shade"></div>
@@ -814,7 +803,6 @@ footer b{color:var(--text-2)}
     <button class="btn" id="sms-cancel">Close</button>
     <a class="btn btn-blue" id="sms-send" href="#">Open in Messages &#9656;</a>
   </div>
-  <div class="smsnote">Opens Messages with the crew as one group and this text prefilled. Review, add anything, and send from there. On an iPad it stays a blue iMessage group.</div>
 </div>
 
 <div class="menu" id="kmenu">
@@ -884,7 +872,6 @@ footer b{color:var(--text-2)}
 <div id="roster-shade"></div>
 <div id="rosterbox">
   <div class="memo-h">&#128101; Technicians — name, phone, role</div>
-  <div class="rosterhint">Phone numbers are what the crew texts actually go to. A lead is shown first in a crew; the truck marks who can drive.</div>
   <div id="rosterlist"></div>
   <div class="roster-add">
     <button class="btn" id="roster-addbtn">+ Add technician</button>
@@ -909,7 +896,6 @@ footer b{color:var(--text-2)}
     <button class="btn" id="rs-cancel">Cancel</button>
     <button class="btn btn-blue" id="rs-move">Move</button>
   </div>
-  <div class="rsnote">Lands in that day\u2019s Drops, flagged Rescheduled.</div>
 </div>
 
 <div id="editor">
@@ -1934,8 +1920,9 @@ footer b{color:var(--text-2)}
       ev.preventDefault(); hideMenus(); ctxJob=tr.dataset.job;
       bmenu.querySelector('[data-act="open"]').style.display=job(ctxJob).link?"block":"none";
       bmenu.style.display="block";
-      bmenu.style.left=Math.min(ev.clientX,window.innerWidth-220)+"px";
-      bmenu.style.top=Math.min(ev.clientY,window.innerHeight-320)+"px";
+      var bw=bmenu.offsetWidth||210, bh=bmenu.offsetHeight||340;
+      bmenu.style.left=Math.max(6,Math.min(ev.clientX,window.innerWidth-bw-6))+"px";
+      bmenu.style.top=Math.max(6,Math.min(ev.clientY,window.innerHeight-bh-6))+"px";
     }
   });
   document.addEventListener("click",function(ev){
@@ -2002,6 +1989,8 @@ footer b{color:var(--text-2)}
     var act=b.dataset.act, j=job(ctxJob);
     if(act==="editjob"){
       hideMenus(); openJobForm(ctxJob); return;
+    } else if(act==="deljob"){
+      hideMenus(); deleteJobById(ctxJob); return;
     } else if(act==="drop"){
       D[today()].push({id:uid("d"),jobId:ctxJob,carried:false});
       renderDrops(); switchTo("board");
@@ -2594,19 +2583,25 @@ footer b{color:var(--text-2)}
       n+=(D[k]||[]).filter(function(d){return d.jobId===id;}).length; });
     return n;
   }
-  $("#f-delete").onclick=function(){
-    if(!edJobId) return;
-    var j=job(edJobId); if(!j) return;
-    var used=jobUsage(edJobId);
+  /* One delete path, whether it's reached from the edit dialog or straight off the
+     press-and-hold menu. A job still sitting on a board can't be removed — that would
+     leave scheduled blocks pointing at nothing. */
+  function deleteJobById(id){
+    var j=job(id); if(!j) return false;
+    var used=jobUsage(id);
     if(used){
       window.alert("Can't delete "+j.job+" yet.\n\nIt's still on "+used+" scheduled block"+
         (used===1?"":"s")+" or drop"+(used===1?"":"s")+". Remove those first.");
-      return;
+      return false;
     }
-    if(!window.confirm("Delete this job from the Bible?\n\n"+j.job+" — "+j.addr)) return;
-    jobs=jobs.filter(function(x){return x.id!==edJobId;});
-    closeJobForm(); renderBible();
-    toast("Job deleted");
+    if(!window.confirm("Delete this job from the Bible?\n\n"+j.job+" — "+j.addr)) return false;
+    jobs=jobs.filter(function(x){return x.id!==id;});
+    renderBible(); toast("Job deleted");
+    return true;
+  }
+  $("#f-delete").onclick=function(){
+    if(!edJobId) return;
+    if(deleteJobById(edJobId)) closeJobForm();
   };
   $("#f-cancel").onclick=closeJobForm;
   shade.onclick=closeJobForm;
@@ -2765,8 +2760,9 @@ footer b{color:var(--text-2)}
     hideMenus(); ctxJob=jid;
     bmenu.querySelector('[data-act="open"]').style.display=job(jid).link?"block":"none";
     bmenu.style.display="block";
-    bmenu.style.left=Math.min(x,window.innerWidth-220)+"px";
-    bmenu.style.top=Math.min(y,window.innerHeight-320)+"px";
+    var bw=bmenu.offsetWidth||210, bh=bmenu.offsetHeight||340;
+    bmenu.style.left=Math.max(6,Math.min(x,window.innerWidth-bw-6))+"px";
+    bmenu.style.top=Math.max(6,Math.min(y,window.innerHeight-bh-6))+"px";
   }
   /* When the outstanding list is long you can't see the board to drag onto, so every
      crew is offered straight from the drop's own menu. */

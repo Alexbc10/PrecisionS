@@ -90,8 +90,8 @@ you'd hate to rebuild.
 
 - **`+`** beside the Bible title creates a job. Job number and address are the only
   required fields.
-- **Right-click / long-press a job ▸ Edit job…** to fix a typo, change status, or add
-  contacts. The same dialog deletes a job — but not while it's still scheduled on a board.
+- **Right-click / long-press a job** for edit, drops, link, status and **Delete job** —
+  deletion is refused while the job is still scheduled on a board.
 - **Contacts** are typed one per line as `role, name, phone`.
 
 ## Crew & phone numbers
