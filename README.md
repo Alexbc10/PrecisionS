@@ -139,11 +139,12 @@ the smallest current iPad. Verified at every common size (landscape CSS pixels):
 Ten crews is the ceiling set by trucks, so the board lays out for ten and columns land at
 roughly 99–128px depending on the iPad.
 
-**Addresses stay readable**, which is what the board is really for. Three things make that
-work: the city is dropped on the board (the full address is kept in the Bible, the editor
-and the crew's text), unstaffed columns collapse to slim markers so working crews get the
-width, and a long address wraps to a second line instead of being cut off. Six staffed
-crews on a 10.2" iPad gives ~141px columns and nothing truncates at all.
+**Addresses stay readable**, which is what the board is really for. A block shows the
+street on one line and the **city on the line below it** — the street identifies the job,
+the city answers "who's near the new Coquitlam call?" without reading anything else.
+Unstaffed columns collapse to slim markers so working crews get the width, and a long
+street wraps to a second line instead of being cut off. Six staffed crews on a 10.2" iPad
+gives ~141px columns and nothing truncates.
 
 The **▾ button on the Drops title collapses the drops row**, handing that space back to the
 grid — worth about 25% more block height when you're concentrating on the schedule.

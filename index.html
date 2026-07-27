@@ -243,6 +243,9 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
               that has to be readable at a glance (strata units are the long case) */
            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
            overflow:hidden;overflow-wrap:anywhere}
+.blk .city{font-family:var(--font-cond);font-size:10.5px;font-weight:700;letter-spacing:.6px;
+           text-transform:uppercase;color:var(--text-2);line-height:1.15;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .blk .ids{font-size:9px;font-weight:700;letter-spacing:.3px;color:var(--text-3);
           line-height:1.4;margin-top:1px}
 .blk .tw{position:absolute;right:5px;bottom:4px;font-family:var(--font-cond);font-size:12.5px;
@@ -605,6 +608,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
   /* a 6-job day in a ~100px column needs tighter type than a desktop column */
   .blk{padding:3px 5px;left:2px;right:2px}
   .blk .addr{font-size:11.5px;line-height:1.15}
+  .blk .city{font-size:9.5px;letter-spacing:.5px}
   .blk .ids{font-size:8.5px;line-height:1.3}
   .blk .tw{font-size:11px;right:4px;bottom:3px}
   .blk .body{font-size:10px;line-height:1.3}
@@ -1066,9 +1070,11 @@ footer b{color:var(--text-2)}
     {id:"J10",job:"26-00132", wo:"WO-40014", addr:"2200 seaview dr unit 103", start:shortOf(new Date(YR,MO,NOW.getDate()-3)), status:"active", signed:true,
      note:"Drying in progress, 4 air movers 1 dehu"}
   ];
-  /* On the board the city is noise — the dispatcher knows the area, and it costs half the
-     column. The full address still goes to the Bible, the editor and the crew's text. */
+  /* Street and city are split onto separate lines on a block. The street is the identifier;
+     the city answers "who's near the new Coquitlam job?" at a glance, which is half of what
+     dispatch reads the board for. Keeping them on one line truncated both. */
   function shortAddr(a){ var s=(a||"").split(",")[0].trim(); return s||(a||""); }
+  function addrCity(a){ var p=(a||"").split(","); return p.length>1?p.slice(1).join(", ").trim():""; }
   function job(id){ for(var i=0;i<jobs.length;i++) if(jobs[i].id===id) return jobs[i]; }
 
   /* Crews are rebuilt every morning, so they belong to a date — not to the branch.
@@ -1365,6 +1371,7 @@ footer b{color:var(--text-2)}
                           : esc(j.wo);
     el.innerHTML=(a.cancelled?'<span class="cxbadge">Cancelled</span> ':'')+
       '<div class="addr">'+esc(shortAddr(j.addr))+'</div>'+
+      (addrCity(j.addr)?'<div class="city">'+esc(addrCity(j.addr))+'</div>':'')+
       '<div class="ids">'+esc(j.job)+' &nbsp;·&nbsp; '+second+'</div>'+
       '<div class="body">'+esc(a.body).replace(/\n/g,"<br>")+'</div>'+
       (a.memo?'<div class="memo-in"><span class="mni">📝</span>'+esc(a.memo).replace(/\n/g,"<br>")+'</div>':'')+
