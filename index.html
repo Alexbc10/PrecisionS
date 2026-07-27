@@ -560,22 +560,14 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .wblk:hover .wn{display:block}
 .wblk.drag{opacity:.5;z-index:40}
 /* --- Touch (iPad) additive layer: mouse behaviour above is unchanged --- */
-/* Resize handles and the weekly board still own their gesture outright — they're small,
-   deliberate targets. Blocks and drops cover most of the screen, so a finger starting on
-   one must be able to SCROLL the page. They only capture the gesture once tapped
-   ("armed"), which is what makes drag-to-move possible without trapping every swipe. */
-.wblk,.person,.grip,.grip-top{touch-action:none}
-.blk,.drop{touch-action:pan-y}
-.blk.armed,.drop.armed{touch-action:none}
-.blk.armed{box-shadow:0 0 0 2px var(--accent),0 8px 22px rgba(0,0,0,.28);z-index:14}
-.drop.armed{box-shadow:0 0 0 2px var(--accent);border-color:var(--accent)}
-/* only worth saying on a touch device — mouse drags immediately */
-@media (pointer:coarse){
-  .blk.armed::after,.drop.armed::after{content:"drag me";position:absolute;right:4px;bottom:2px;
-    font-size:8.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
-    color:var(--accent);opacity:.85;pointer-events:none}
-  .drop.armed{position:relative}
-}
+/* Direct manipulation: a finger on a BLOCK moves that block, a finger on empty grid
+   scrolls the board, two fingers scroll anywhere. These values are static — iOS Safari
+   decides scroll-vs-drag from touch-action before any script runs, so changing it at
+   runtime doesn't reliably take effect and we never try.
+   Drops are the exception: that list gets long and every row is a target, so drops stay
+   scrollable and are placed from their press-and-hold menu rather than by dragging. */
+.blk,.wblk,.person,.grip,.grip-top{touch-action:none}
+.drop{touch-action:pan-y}
 .blk.peek{height:auto !important;overflow:visible;z-index:46;box-shadow:0 8px 22px rgba(0,0,0,.26)}
 .wblk.peek{height:auto !important;overflow:visible;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .wblk.peek .wn{display:block}
@@ -1566,8 +1558,6 @@ footer b{color:var(--text-2)}
     colsEl.querySelectorAll(".col.hot").forEach(function(c){c.classList.remove("hot");});
     headsEl.querySelectorAll(".crewhead.hot").forEach(function(h){h.classList.remove("hot");});
     dropCard.classList.remove("hot");
-    /* a finished drag releases the armed element back to scrolling */
-    document.querySelectorAll(".armed").forEach(function(e){ e.classList.remove("armed"); });
   }
   function find(id){
     var l=A[today()]||[];
@@ -3067,20 +3057,17 @@ footer b{color:var(--text-2)}
         blk=t.closest(".blk"), drp=t.closest(".drop"), per=t.closest(".person"),
         head=t.closest(".crewhead"), nm=t.closest(".cn span"),
         sg=t.closest("[data-sign]"), tr=t.closest("tr[data-job]");
-    if(!(grip||gripT||blk||drp||per||head||nm||sg||tr)){ disarmAll(); return; }   /* nothing here — let the page scroll */
+    if(!(grip||gripT||blk||drp||per||head||nm||sg||tr)) return;   /* empty grid — let it scroll */
 
     var x=ev.clientX, y=ev.clientY;
     pending={x0:x,y0:y,long:false,start:null,menu:null,tap:null};
 
-    /* A block or drop only becomes draggable once tapped. Until then the finger belongs to
-       the page, so a swipe scrolls instead of dragging the thing you happened to touch. */
-    var blkReady = blk && blk.classList.contains("armed");
-    var drpReady = drp && drp.classList.contains("armed");
-
+    /* Blocks move on a single finger, immediately — you grabbed the job, so you move the
+       job. Scrolling comes from empty grid space or a second finger. Drops deliberately
+       get no drag here: they scroll, and move via their menu. */
     if(gripT&&blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); drag={mode:"resizeTop",id:blk.dataset.id,el:blk}; }; }
     else if(grip&&blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); drag={mode:"resize",id:blk.dataset.id,el:blk}; }; }
-    else if(blkReady){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); var r=blk.getBoundingClientRect(); drag={mode:"move",id:blk.dataset.id,el:blk,dy:clamp(y-r.top,0,r.height)}; }; }
-    else if(drpReady){ pending.start=function(){ drag={mode:"new",dropId:drp.dataset.drop,dy:10}; drp.style.opacity=".4"; }; }
+    else if(blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); var r=blk.getBoundingClientRect(); drag={mode:"move",id:blk.dataset.id,el:blk,dy:clamp(y-r.top,0,r.height)}; }; }
     else if(per){ pending.start=function(){ drag={mode:"person",name:per.dataset.person,el:per,x0:x,y0:y}; per.classList.add("drag"); }; }
 
     pending.menu=function(){
@@ -3094,20 +3081,15 @@ footer b{color:var(--text-2)}
       if(sg){ var jj=job(sg.dataset.sign); jj.signed=!jj.signed; renderBible(); return; }
       if(nm){ return; }                                   /* removing someone is menu-only now */
       if(per){ var rec=roster.filter(function(z){return z.name===per.dataset.person;})[0]; if(rec) rec.on=!rec.on; renderHeads(); renderPeople(); return; }
+      /* Touching a block without moving it means you didn't want to move it — so show the
+         menu, and expand the block so its note is readable while you decide. */
       if(blk){
-        var wasArmed=blk.classList.contains("armed");
-        disarmAll();
         document.querySelectorAll(".blk.peek").forEach(function(b){ if(b!==blk) b.classList.remove("peek"); });
-        if(wasArmed){ blk.classList.remove("peek"); }
-        else { blk.classList.add("armed"); blk.classList.add("peek"); }
+        blk.classList.add("peek");
+        openBlockMenu(blk.dataset.id,x,y); menuJustOpened=Date.now();
         return;
       }
-      if(drp){
-        var dArmed=drp.classList.contains("armed");
-        disarmAll();
-        if(!dArmed) drp.classList.add("armed");
-        return;
-      }
+      if(drp){ openDropMenu(drp.dataset.drop, drp.dataset.date||today(), x,y); menuJustOpened=Date.now(); return; }
     };
 
     var hasMenu = nm||blk||drp||(head&&head.dataset.crew)||tr;
@@ -3121,10 +3103,7 @@ footer b{color:var(--text-2)}
     }
     /* Only swallow the gesture when we're actually going to drag it. Everything else must
        stay scrollable — that's the whole point of arming. */
-    if(grip||gripT||blkReady||drpReady||per) ev.preventDefault();
-  }
-  function disarmAll(except){
-    document.querySelectorAll(".armed").forEach(function(e){ if(e!==except) e.classList.remove("armed"); });
+    if(grip||gripT||blk||per) ev.preventDefault();
   }
   function pendingMove(ev){
     if(!pending||pending.long) return;

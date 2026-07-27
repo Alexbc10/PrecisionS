@@ -125,10 +125,23 @@ first** (`precisionscheduler-v1` → `-v2`) or installed iPads keep serving the 
 
 ## Touch vs mouse
 
-On an iPad, **tap a block or drop once to pick it up**, then drag it. Until tapped it stays
-scrollable, so a swipe anywhere on the board scrolls the page instead of dragging whatever
-your finger landed on. **Press and hold** anything for its menu. Resize handles drag
-immediately. Mouse behaviour is unchanged — drag straight away, right-click for menus.
+On an iPad the board works by direct manipulation:
+
+- **Finger on a block → moves that block**, immediately. You grabbed the job, so you move the job.
+- **Finger on empty grid → scrolls** the board.
+- **Two fingers anywhere → scrolls**, including over blocks.
+- **Tap a block (without moving it) → its menu**, and the block expands so you can read the note.
+- **Drops don't drag on touch** — the list stays scrollable. **Tap or hold a drop** and pick a
+  crew straight from its menu, which also works when the board is scrolled out of view.
+
+The Bible and the drops list scroll normally with one finger — there's nothing draggable in
+them, so there's no ambiguity.
+
+Mouse behaviour is unchanged throughout: drag straight away, right-click for menus.
+
+*Note: `touch-action` values are static and must stay that way. iOS Safari decides
+scroll-vs-drag before any script runs, so toggling it at runtime does not reliably work —
+an earlier "tap to arm, then drag" model failed on device for exactly that reason.*
 
 ## Editing
 
