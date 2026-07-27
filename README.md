@@ -171,6 +171,18 @@ and drops flowing across the width instead of stacking down it. Zoom is fitted b
 the real page rather than assuming a fixed chrome height, so it adapts to any device and
 re-fits when the iPad is rotated.
 
+## Weekly board
+
+Deliberately minimal on touch — it's for reading the month and jumping into a day, not for
+rearranging work.
+
+- **Swipe anywhere to scroll**, including over blocks. Nothing there claims the gesture.
+- **Tap a day header** to open that day on the Daily Board.
+- **Press and hold a block** for its four actions: open that day, move to another day, send
+  back to that day's drops, or delete it.
+- **No touch dragging.** Dragging blocks between days stays a mouse-only action; on an iPad
+  use *move to another day* instead.
+
 ## Orientation
 
 The board is built for **landscape**. In portrait with a full roster the ten columns hit

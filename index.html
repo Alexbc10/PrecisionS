@@ -232,12 +232,10 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
 [data-theme="dark"] .blk.note{background:#2a230f;border-color:#c1913f}
 .blk.note .body{font-size:11.5px;color:#5a4a1a;white-space:pre-wrap;line-height:1.35;padding-bottom:14px}
 [data-theme="dark"] .blk.note .body{color:#e6c876}
-.blk.note .noteicon{font-size:11px;margin-right:4px}
 .drop.note{border-left-color:#d9a441;background:#fdf7e6}
 [data-theme="dark"] .drop.note{background:#2a230f}
 .drop.note .d1{color:#5a4a1a}
 [data-theme="dark"] .drop.note .d1{color:#e6c876}
-.noteicon{opacity:.85}
 .notebtn{margin-left:8px;font-family:var(--font);font-size:10px;font-weight:800;letter-spacing:.5px;
          text-transform:uppercase;border:1.5px solid #d9a441;background:#fdf7e6;color:#7a5c14;
          border-radius:5px;padding:2px 8px;cursor:pointer}
@@ -613,7 +611,11 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
    These values are static — iOS Safari decides scroll-vs-drag from touch-action before
    any script runs, so changing it at runtime doesn't reliably take effect and we never
    try. (A "tap to arm, then drag" model was tried and failed on device for that reason.) */
-.blk,.wblk,.drop,.person,.grip,.grip-top{touch-action:none}
+.blk,.drop,.person,.grip,.grip-top{touch-action:none}
+/* The weekly board is read-and-jump on touch — no dragging — so a swipe over it must
+   scroll the month rather than being swallowed by whatever block is under the finger. */
+.wblk{touch-action:pan-y}
+.dockdrops .drop{touch-action:pan-y}
 .blk.peek{height:auto !important;overflow:visible;z-index:46;box-shadow:0 8px 22px rgba(0,0,0,.26)}
 .wblk.peek{height:auto !important;overflow:visible;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .wblk.peek .wn{display:block}
@@ -955,6 +957,14 @@ footer b{color:var(--text-2)}
   <button data-act="memo">&#128221; Attach / edit memo&#8230;</button>
   <button data-act="resched">&#128197; Move to another day\u2026</button>
   <button data-act="remove">&#128465; Remove from drops</button>
+</div>
+
+<div class="menu" id="wmenu">
+  <button data-act="wopen">Open this day</button>
+  <button data-act="wresched">&#128197; Move to another day&#8230;</button>
+  <button data-act="wdrops">Send back to drops</button>
+  <hr>
+  <button data-act="wdel">&#128465; Delete block</button>
 </div>
 
 <div class="menu" id="nmenu">
@@ -2036,7 +2046,8 @@ footer b{color:var(--text-2)}
     var d=$("#dmenu"); if(d) d.style.display="none";
     var h=$("#hmenu"); if(h) h.style.display="none";
     var dm=$("#datamenu"); if(dm) dm.style.display="none";
-    var nmn=$("#nmenu"); if(nmn) nmn.style.display="none"; }
+    var nmn=$("#nmenu"); if(nmn) nmn.style.display="none";
+    var wmn=$("#wmenu"); if(wmn) wmn.style.display="none"; }
 
   /* Taking someone off a crew is destructive and used to fire on a bare tap — far too easy
      to hit by accident on an iPad. It now goes through a menu. */
@@ -2130,6 +2141,39 @@ footer b{color:var(--text-2)}
     hideMenus();
   });
 
+  /* ---------------- weekly board menu (press and hold) ---------------- */
+  var wlpTimer=null, ctxW=null;
+  function openWeekMenu(id,date,x,y){
+    hideMenus(); ctxW={id:id,date:date};
+    var wm=$("#wmenu");
+    wm.style.display="block";
+    var mw=wm.offsetWidth||220, mh=wm.offsetHeight||170;
+    wm.style.left=Math.max(6,Math.min(x,window.innerWidth-mw-6))+"px";
+    wm.style.top=Math.max(6,Math.min(y,window.innerHeight-mh-6))+"px";
+  }
+  $("#wmenu").addEventListener("click",function(ev){
+    var b=ev.target.closest("button"); if(!b||!ctxW) return;
+    var act=b.dataset.act, d=ctxW.date, a=findIn(d,ctxW.id);
+    if(act==="wopen"){
+      di=dates.indexOf(d); hideMenus(); switchTo("board"); renderAll(); ctxW=null; return;
+    }
+    if(a){
+      if(act==="wresched"){ openResched("block", ctxW.id, d); ctxW=null; return; }
+      if(act==="wdrops"){
+        A[d]=(A[d]||[]).filter(function(x){return x.id!==a.id;});
+        D[d]=D[d]||[];
+        if(isNote(a)) D[d].push({id:a.id,kind:"note",text:a.text});
+        else D[d].push({id:uid("d"),jobId:a.jobId,carried:false,memo:a.memo||null});
+      } else if(act==="wdel"){
+        if(!window.confirm("Delete this block from "+d+"?")) { hideMenus(); return; }
+        A[d]=(A[d]||[]).filter(function(x){return x.id!==a.id;});
+      }
+      renderWeek(); renderDock();
+      if(d===today()){ renderAll(); }   /* the daily board may be showing the same day */
+    }
+    ctxW=null; hideMenus();
+  });
+
   /* ---------------- reschedule to another day ---------------- */
   function isoToKey(iso){ var m=iso.split("-");
     return MONNM[parseInt(m[1],10)-1]+" "+parseInt(m[2],10)+" "+m[0]; }
@@ -2154,8 +2198,11 @@ footer b{color:var(--text-2)}
     function drop(from){ if(isNote(from)) return {id:from.id,kind:"note",text:from.text,rescheduled:true};
                          return {id:uid("d"),jobId:from.jobId,rescheduled:true,memo:from.memo||null}; }
     if(rsCtx.kind==="block"){
-      var a=find(rsCtx.id);
-      if(a){ A[today()]=(A[today()]||[]).filter(function(x){return x.id!==a.id;});
+      /* the source day is whatever the block was on — not necessarily today, now that the
+         weekly board can reschedule a block a week out */
+      var src=rsCtx.date||today();
+      var a=findIn(src,rsCtx.id)||find(rsCtx.id);
+      if(a){ A[src]=(A[src]||[]).filter(function(x){return x.id!==a.id;});
              D[key].push(drop(a));
              var el=colsEl.querySelector('[data-id="'+a.id+'"]'); if(el) el.remove(); }
     } else {
@@ -2622,7 +2669,7 @@ footer b{color:var(--text-2)}
     el.style.height=h+"px"; el.style.minHeight=h+"px";
     if(isNote(a)){
       el.className="wblk note";
-      el.innerHTML='<b>\uD83D\uDCDD '+esc(noteFirst(a))+'</b>'+
+      el.innerHTML='<b>'+esc(noteFirst(a))+'</b>'+
         '<div class="wn">'+esc(a.text).replace(/\n/g,"<br>")+'</div>';
       col.appendChild(el); return;
     }
@@ -2670,8 +2717,30 @@ footer b{color:var(--text-2)}
   weekEl.addEventListener("pointerdown",function(ev){
     if(ev.pointerType!=="mouse"){
       var h0=ev.target.closest("[data-open]");
-      if(h0){ di=dates.indexOf(h0.dataset.open); switchTo("board"); renderAll(); }
-      return;   /* weekly block touch-drag: later build */
+      if(h0){ di=dates.indexOf(h0.dataset.open); switchTo("board"); renderAll(); return; }
+      /* Deliberately minimal here: no touch drag on the weekly board, just press-and-hold
+         for the few things worth doing to a block a week out. Any movement is a scroll. */
+      var wb0=ev.target.closest(".wblk");
+      if(wb0){
+        var sx=ev.clientX, sy=ev.clientY;
+        clearTimeout(wlpTimer);
+        wlpTimer=setTimeout(function(){
+          openWeekMenu(wb0.dataset.id, wb0.dataset.date, sx, sy);
+          menuJustOpened=Date.now();
+        },500);
+        var stop=function(e){
+          if(e.type==="pointermove" &&
+             Math.abs(e.clientX-sx)<8 && Math.abs(e.clientY-sy)<8) return;
+          clearTimeout(wlpTimer);
+          document.removeEventListener("pointermove",stop,true);
+          document.removeEventListener("pointerup",stop,true);
+          document.removeEventListener("pointercancel",stop,true);
+        };
+        document.addEventListener("pointermove",stop,true);
+        document.addEventListener("pointerup",stop,true);
+        document.addEventListener("pointercancel",stop,true);
+      }
+      return;
     }
     if(ev.button!==0) return;
     var head=ev.target.closest("[data-open]");
@@ -2705,7 +2774,7 @@ footer b{color:var(--text-2)}
         el.dataset.drop=d.id; el.dataset.date=day;
         if(d.kind==="note"){
           el.className="drop note";
-          el.innerHTML='<div class="d1">\uD83D\uDCDD '+esc(noteFirst(d))+'</div>'+
+          el.innerHTML='<div class="d1">'+esc(noteFirst(d))+'</div>'+
             '<div class="d2">'+(dayNames[day]||"")+' · note</div>';
           dockList.appendChild(el); return;
         }
