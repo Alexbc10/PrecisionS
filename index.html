@@ -232,7 +232,9 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
 .blk .cxbadge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.5px;
               text-transform:uppercase;color:#fff;background:var(--red);border-radius:3px;
               padding:1px 5px;margin-bottom:2px}
-.blksent{position:absolute;top:3px;right:3px;font-size:10px;opacity:.7;pointer-events:none}
+.blksent{position:absolute;top:2px;right:4px;font-size:11px;font-weight:800;line-height:1;
+         color:var(--st-active);opacity:.95;pointer-events:none}
+[data-theme="dark"] .blksent{color:#5fbf6a}
 /* When the day is zoomed out a block can be too short for its note. Hovering grows it
    to fit — min-height holds the real size, so blocks that already fit don't move. */
 .blk:hover:not(.drag){height:auto !important;overflow:visible;z-index:46;
@@ -1363,7 +1365,7 @@ footer b{color:var(--text-2)}
       place(el,a);
       el.innerHTML='<div class="body">'+
         esc(a.text).replace(/\n/g,"<br>")+'</div>'+
-        (a.sent?'<span class="blksent" title="Texted to the crew">&#128241;&#10003;</span>':'')+
+        (a.sent?'<span class="blksent" title="Texted to the crew">&#10003;</span>':'')+
         '<div class="grip-top"></div><div class="grip"></div>';
       col.appendChild(el); return;
     }
@@ -1380,7 +1382,7 @@ footer b{color:var(--text-2)}
       '<div class="body">'+esc(a.body).replace(/\n/g,"<br>")+'</div>'+
       (a.memo?'<div class="memo-in"><span class="mni">Memo</span>'+esc(a.memo).replace(/\n/g,"<br>")+'</div>':'')+
       '<div class="tw">'+win(a.s,a.e)+'</div>'+
-      (a.sent?'<span class="blksent" title="A message was sent to the crew for this job">&#128241;&#10003;</span>':'')+
+      (a.sent?'<span class="blksent" title="A message was sent to the crew for this job">&#10003;</span>':'')+
       '<div class="grip-top"></div><div class="grip"></div>';
     col.appendChild(el);
   }
