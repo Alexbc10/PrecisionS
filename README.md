@@ -171,6 +171,22 @@ and drops flowing across the width instead of stacking down it. Zoom is fitted b
 the real page rather than assuming a fixed chrome height, so it adapts to any device and
 re-fits when the iPad is rotated.
 
+## Orientation
+
+The board is built for **landscape**. In portrait with a full roster the ten columns hit
+their minimum width and the grid overflows sideways by 150-250px; in landscape it never
+overflows at any iPad size.
+
+**A web app can't lock orientation on an iPad** — Safari ignores the manifest's
+`orientation` field and doesn't support the Screen Orientation lock API. The reliable fix
+is the iPad's own **Rotation Lock** (Control Centre) with the iPad held in landscape.
+Flipping 180° between landscape-left and landscape-right corrects itself automatically;
+that's handled by iOS and needs nothing from us.
+
+**On an external display** everything opens up: at 1920x1080 with all ten crews staffed,
+columns are ~181px and **no address truncates at all**. That's the real fix for legibility
+if the office will supply a monitor.
+
 ## Touch vs mouse
 
 On an iPad the board works by direct manipulation:

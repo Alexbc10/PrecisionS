@@ -55,7 +55,11 @@
   --st-done:#6b8cb0;--st-done-bg:#1a2839;--st-done-row:#14202f;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;
+/* iOS ignores user-scalable=no, so a two-finger gesture outside the grid can zoom the whole
+   page and leave it scrollable sideways with nothing out there. Pin it shut. */
+html{overflow-x:hidden;overscroll-behavior-x:none}
+body{overflow-x:hidden;overscroll-behavior-x:none;max-width:100%;
+     font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;
      min-height:100vh;transition:background .25s,color .25s;-webkit-font-smoothing:antialiased}
 
 /* ---------- header ---------- */
@@ -83,13 +87,18 @@ header{background:var(--header-bg);border-bottom:3px solid #1565c0;padding:0 24p
 
 /* ---------- tab strip ---------- */
 .step-nav{background:var(--step-bg);border-bottom:1px solid var(--border);padding:0 24px;
-          display:flex;align-items:center;gap:2px;position:sticky;top:64px;z-index:90}
+          display:flex;align-items:center;gap:2px;position:sticky;top:64px;z-index:90;
+          overflow:hidden}
 .tab{padding:12px 16px;font-size:12px;cursor:pointer;border:none;background:none;
      border-bottom:3px solid transparent;color:var(--text-3);font-family:var(--font);
      font-weight:700;letter-spacing:.5px;transition:all .15s;text-transform:uppercase;white-space:nowrap}
 .tab.active{color:var(--step-active);border-bottom-color:var(--step-active)}
 .tab:hover{color:var(--text-2)}
 .navspacer{margin-left:auto;display:flex;align-items:center;gap:8px}
+/* The date is the board's context, so it sits in the middle rather than pinned to the far
+   right where it was the widest thing on the row. */
+.datenav{position:absolute;left:50%;transform:translateX(-50%);
+         display:flex;align-items:center;gap:8px}
 .zoomgrp{display:flex;align-items:center;gap:4px;margin-right:10px;
          padding-right:12px;border-right:1px solid var(--border)}
 .zoomlbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-3)}
@@ -626,6 +635,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
             padding-left:max(12px,env(safe-area-inset-left));
             padding-right:max(12px,env(safe-area-inset-right))}
   .tab{padding:0 12px;font-size:11.5px;height:36px}
+  /* pinch handles zoom and the on-screen Fit button handles fitting, so these are dead
+     weight on a tablet — and they were the widest thing on the row */
+  .zoomgrp{display:none}
   main{padding:8px max(10px,env(safe-area-inset-right)) 10px max(10px,env(safe-area-inset-left))}
   /* once you're on the tab the board is self-evident — the title is pure overhead */
   #view-board .sec-title{display:none}
@@ -724,6 +736,11 @@ footer b{color:var(--text-2)}
   <button class="tab active" data-view="bible">The Bible</button>
   <button class="tab" data-view="board">Daily Board</button>
   <button class="tab" data-view="week">Weekly Board</button>
+  <div class="datenav">
+    <button class="datebtn" id="prev" title="Previous day">‹</button>
+    <div class="dateval" id="dateval"></div>
+    <button class="datebtn" id="next" title="Next day">›</button>
+  </div>
   <div class="navspacer">
     <div class="zoomgrp">
       <span class="zoomlbl">Zoom</span>
@@ -731,9 +748,6 @@ footer b{color:var(--text-2)}
       <button class="minibtn" id="zin" title="Zoom in">+</button>
       <button class="minibtn" id="zfit" title="Fit the whole day" style="width:auto;padding:0 8px;font-size:10px">FIT</button>
     </div>
-    <button class="datebtn" id="prev" title="Previous day">‹</button>
-    <div class="dateval" id="dateval"></div>
-    <button class="datebtn" id="next" title="Next day">›</button>
   </div>
 </nav>
 
@@ -3381,6 +3395,14 @@ footer b{color:var(--text-2)}
     /* rotating an iPad changes every measurement fitZoom depends on */
     clearTimeout(refitT);
     refitT=setTimeout(function(){ if(!onWeek()) doFit(); },160);
+  });
+
+  /* Kill page-level pinch zoom outright. iOS ignores user-scalable=no, so without this a
+     two-finger gesture anywhere outside the grid zooms the document and leaves it scrolling
+     sideways past content that isn't there. The grid's own handler below still zooms the
+     day, because it runs first on the way up from the target. */
+  ["gesturestart","gesturechange","gestureend"].forEach(function(t){
+    document.addEventListener(t,function(ev){ ev.preventDefault(); },{passive:false});
   });
 
   /* iOS Safari handles pinch with its own gesture events and can claim the gesture before
