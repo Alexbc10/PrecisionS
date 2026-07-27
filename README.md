@@ -1,6 +1,6 @@
 # PrecisionScheduler — iPad Pilot Build
 
-**Open `precisionscheduler.html` — double-click it. No install, no server.**
+**Open `index.html` — double-click it. No install, no server.**
 
 Single self-contained file. Works offline; it only reaches the network to pull Barlow from
 Google Fonts, and falls back to system fonts cleanly if there's no connection.
@@ -21,10 +21,10 @@ when it's on disk. See *Data & backups* below; the export file is the real safet
 - **Drag a block to another crew or another time.** This is the whiteout-and-arrows moment, solved. A red line follows the drag showing exactly where it lands and at what time.
 - **Drag either edge of a block** to resize. The top edge changes the start without moving the finish; the bottom changes the finish. Snaps to 15 minutes, and the time updates as you drag.
 - **Hover a squeezed block** — zoomed out, a short block can clip its note. Hovering grows it to show the whole thing, and it snaps back when you leave.
-- **Drag a job from Drops** (bottom left) onto a crew column. It arrives prefilled from the Bible — address, job number, work order, note — all editable.
+- **Drag a job from Drops** (bottom left) onto a crew column. It arrives prefilled from the Bible — address, job number, work order, note — all editable. On touch, **tap the drop first** to pick it up. When the list is long, **press and hold a drop** and pick a crew straight from the menu instead of dragging.
 - **Drag a block back onto Drops** to un-place it.
 - **Right-click or double-click a block** to edit the note and override its colour.
-- **Six columns by default**, three of them empty. **Drag a name from Crew Available onto a column header** to build a crew; click a name in a header to take them out.
+- **Six columns by default**, three of them empty. **Drag a name from Crew Available onto a column header** to build a crew; **press and hold** a name in a header to take them out (a plain tap does nothing — too easy to hit by accident).
 - **Zoom** — 07:00–17:00 fits on screen by default. Use +/− or FIT, or just **press spacebar** to snap back to fit.
 - **Scroll earlier or later.** The grid runs 05:00–20:00; drop a block outside the normal day and FIT widens to include it.
 - **Crew headers stay pinned** to the top as you scroll, so you can still see which column is which while dragging from a long drops list.
@@ -102,7 +102,7 @@ messaging. Renaming someone updates any crew they're already on.
 
 ## Putting it on an iPad
 
-Live at **https://alexbc10.github.io/Precisionscheduler/**
+Live at **https://alexbc10.github.io/PrecisionS/**
 
 On the iPad, open that URL in **Safari** (not Chrome — only Safari can install to the home
 screen), then **Share ▸ Add to Home Screen**. It launches fullscreen with its own icon, and
@@ -113,7 +113,7 @@ hosted. Serving over https is also what lets the offline worker register.
 
 ## Deploying a change
 
-This folder **is** the repo (`Alexbc10/Precisionscheduler`) and GitHub Pages serves it from
+This folder **is** the repo (`Alexbc10/PrecisionS`) and GitHub Pages serves it from
 the root, so what's here is exactly what's live.
 
 ```
@@ -122,6 +122,13 @@ git add -A && git commit -m "…" && git push
 
 Pages redeploys in under a minute. **If you changed `index.html`, bump `CACHE` in `sw.js`
 first** (`precisionscheduler-v1` → `-v2`) or installed iPads keep serving the old version.
+
+## Touch vs mouse
+
+On an iPad, **tap a block or drop once to pick it up**, then drag it. Until tapped it stays
+scrollable, so a swipe anywhere on the board scrolls the page instead of dragging whatever
+your finger landed on. **Press and hold** anything for its menu. Resize handles drag
+immediately. Mouse behaviour is unchanged — drag straight away, right-click for menus.
 
 ## Editing
 
