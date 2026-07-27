@@ -143,8 +143,11 @@ roughly 99–128px depending on the iPad.
 called yet, blue set up but needs a text before arrival, green contacted. The **4px left
 edge** keeps the job status from the Bible (active / waiting / paused / completed). Morning
 work is therefore "clear the red", while the left edge still tells you what kind of job it
-is. Set it from the block's press-and-hold menu; a newly placed block starts as *not called
-yet*, which is the honest default.
+is. **Tap the small circle in a block's bottom-left corner to change it** — one tap cycles
+not called -> needs a text -> contacted -> back. Hollow means nobody has called yet, filled
+means done, so the morning is a lap of the board tapping circles until no red is left. The
+press-and-hold menu can still set a state directly. A newly placed block starts as *not
+called yet*, which is the honest default.
 
 Note that the Bible and the board use the same palette for different questions — but the
 question is the same shape in both: red means someone has to do something, blue means
@@ -177,7 +180,8 @@ On an iPad the board works by direct manipulation:
 - **Pinch on the grid → zooms the day** in and out, holding whatever's between your fingers
   in place. FIT still snaps back to the whole day.
 - **Press and hold → the menu**, for blocks, drops, crew headers, names and Bible rows alike.
-- **Quick tap a block → expands it** so a clipped note can be read. Tap again to collapse.
+- **Quick tap a block → expands it** so a clipped note can be read. Tap it again, or tap any
+  empty part of the board, to put it back.
 
 A long drops list can also be emptied without dragging at all: **hold a drop** and pick a
 crew straight from its menu, which works even when the board is scrolled out of view.
