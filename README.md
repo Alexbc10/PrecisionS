@@ -163,6 +163,8 @@ On an iPad the board works by direct manipulation:
 - **Finger on a drop → drags it onto the schedule**, same as on a mouse.
 - **Finger on empty grid → scrolls** the board.
 - **Two fingers anywhere → scrolls**, including over blocks and over a long drops list.
+- **Pinch on the grid → zooms the day** in and out, holding whatever's between your fingers
+  in place. FIT still snaps back to the whole day.
 - **Press and hold → the menu**, for blocks, drops, crew headers, names and Bible rows alike.
 - **Quick tap a block → expands it** so a clipped note can be read. Tap again to collapse.
 

@@ -296,7 +296,9 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
       background:rgba(240,180,60,.14);border-radius:3px;font-size:10px;line-height:1.3;
       color:var(--text-2);white-space:pre-wrap;overflow-wrap:anywhere}
 .drop .drmemo .mni{margin-right:3px;opacity:.85}
-.drop .dmemo{font-size:11px;opacity:.85}
+.drop .dmemo{font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+     color:#8a6a15;background:rgba(240,180,60,.2);border-radius:3px;padding:1px 5px}
+[data-theme="dark"] .drop .dmemo{color:#e0b855}
 .person{display:inline-block;border:1.5px solid var(--border);border-radius:20px;padding:3px 12px;
         margin:0 4px 5px 0;font-size:12px;font-weight:600;background:var(--surface);
         color:var(--text-2);cursor:grab;user-select:none}
@@ -436,7 +438,9 @@ a.jn{color:var(--accent);text-decoration:none;border-bottom:1.5px solid var(--ac
 .blk .memo-in{margin-top:3px;padding:2px 48px 1px 6px;border-left:2px solid rgba(240,180,60,.75);
       background:rgba(240,180,60,.14);border-radius:3px;font-size:9.5px;line-height:1.3;
       color:var(--text-2);white-space:pre-wrap;overflow-wrap:anywhere}
-.blk .memo-in .mni{margin-right:3px;opacity:.85}
+.mni{margin-right:5px;font-size:8px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+     color:#8a6a15;opacity:.9}
+[data-theme="dark"] .mni{color:#e0b855}
 /* Roster manager — the only place real phone numbers get entered, so crew texts land. */
 #roster-shade{position:fixed;inset:0;background:rgba(6,13,24,.5);display:none;z-index:246}
 #rosterbox{position:fixed;display:none;left:50%;top:60px;transform:translateX(-50%);z-index:256;
@@ -1357,7 +1361,7 @@ footer b{color:var(--text-2)}
     if(isNote(a)){
       el.className="blk note"+(a.colour?" "+a.colour:"");
       place(el,a);
-      el.innerHTML='<div class="body"><span class="noteicon">\uD83D\uDCDD</span>'+
+      el.innerHTML='<div class="body">'+
         esc(a.text).replace(/\n/g,"<br>")+'</div>'+
         (a.sent?'<span class="blksent" title="Texted to the crew">&#128241;&#10003;</span>':'')+
         '<div class="grip-top"></div><div class="grip"></div>';
@@ -1374,7 +1378,7 @@ footer b{color:var(--text-2)}
       (addrCity(j.addr)?'<div class="city">'+esc(addrCity(j.addr))+'</div>':'')+
       '<div class="ids">'+esc(j.job)+' &nbsp;·&nbsp; '+second+'</div>'+
       '<div class="body">'+esc(a.body).replace(/\n/g,"<br>")+'</div>'+
-      (a.memo?'<div class="memo-in"><span class="mni">📝</span>'+esc(a.memo).replace(/\n/g,"<br>")+'</div>':'')+
+      (a.memo?'<div class="memo-in"><span class="mni">Memo</span>'+esc(a.memo).replace(/\n/g,"<br>")+'</div>':'')+
       '<div class="tw">'+win(a.s,a.e)+'</div>'+
       (a.sent?'<span class="blksent" title="A message was sent to the crew for this job">&#128241;&#10003;</span>':'')+
       '<div class="grip-top"></div><div class="grip"></div>';
@@ -1429,7 +1433,7 @@ footer b{color:var(--text-2)}
       var el=document.createElement("div"); el.dataset.drop=d.id;
       if(d.kind==="note"){
         el.className="drop note";
-        el.innerHTML='<div class="d1"><span class="noteicon">\uD83D\uDCDD</span> '+esc(noteFirst(d))+'</div>'+
+        el.innerHTML='<div class="d1">'+esc(noteFirst(d))+'</div>'+
           '<div class="d2">Note — not texted with the crew\u2019s day</div>';
         dropEl.appendChild(el); return;
       }
@@ -1439,9 +1443,9 @@ footer b{color:var(--text-2)}
         (d.cancelled?'<span class="badge b-cancel">Cancelled</span>':'')+
         (d.rescheduled?'<span class="badge b-resched">Rescheduled</span>':'')+
         (d.carried?'<span class="badge b-amber">Carried over</span>':'')+
-        (d.memo?'<span class="dmemo" title="Has an attached memo">📝</span>':'')+'</div>'+
+        (d.memo?'<span class="dmemo" title="Has an attached memo">Memo</span>':'')+'</div>'+
         '<div class="d2">'+esc(j.job)+' · '+esc(j.wo)+' — '+esc(j.note.split("\n")[0])+'</div>'+
-        (d.memo?'<div class="drmemo"><span class="mni">📝</span>'+esc(d.memo).replace(/\n/g,"<br>")+'</div>':'');
+        (d.memo?'<div class="drmemo"><span class="mni">Memo</span>'+esc(d.memo).replace(/\n/g,"<br>")+'</div>':'');
       dropEl.appendChild(el);
     });
     scheduleSave();
@@ -2834,19 +2838,53 @@ footer b{color:var(--text-2)}
     }
     return document.scrollingElement||document.documentElement;
   }
+  function ptrDist(){
+    var a=[]; ptrs.forEach(function(p){ a.push(p); });
+    if(a.length<2) return 0;
+    var dx=a[0].x-a[1].x, dy=a[0].y-a[1].y;
+    return Math.sqrt(dx*dx+dy*dy);
+  }
+  /* Which minute sits under a given screen y, so a zoom can hold it in place. */
+  function minuteAtY(y){
+    var r=gridwrap.getBoundingClientRect();
+    return DAY_START + ((y-r.top+gridwrap.scrollTop)/SLOT)*15;
+  }
+  function zoomAround(newSlot,anchorMin,screenY){
+    newSlot=clamp(newSlot,6,34);
+    if(newSlot===SLOT) return false;
+    SLOT=newSlot; rezoom();
+    var r=gridwrap.getBoundingClientRect();
+    gridwrap.scrollTop=Math.max(0,((anchorMin-DAY_START)/15)*SLOT-(screenY-r.top));
+    return true;
+  }
   function enterTwoScroll(ev){
     clearLP(); pending=null;
     if(drag){ if(drag.el) drag.el.classList.remove("drag"); drag=null; try{clearHot();}catch(e){} try{layout();}catch(e){} }
     document.querySelectorAll(".drop").forEach(function(d){ d.style.opacity=""; });
-    twoScroll={ el:findScrollable(ev.target), lastY:avgPtrY() };
+    var inGrid=!onWeek() && !!(ev.target.closest && ev.target.closest("#gridwrap"));
+    var midY=avgPtrY();
+    twoScroll={ el:findScrollable(ev.target), lastY:midY,
+                grid:inGrid, d0:ptrDist(), slot0:SLOT,
+                anchorMin:inGrid?minuteAtY(midY):0 };
     ev.preventDefault();
   }
   function handleTwoScroll(ev){
     ev.preventDefault();
-    var y=avgPtrY(), d=y-twoScroll.lastY; twoScroll.lastY=y;
+    var y=avgPtrY();
+    /* Spreading or closing the fingers zooms the day; moving them together pans it —
+       the same combined gesture as a map. */
+    if(twoScroll.grid && twoScroll.d0>24){
+      var d=ptrDist();
+      if(d>24 && Math.abs(d-twoScroll.d0)/twoScroll.d0>0.06){
+        if(zoomAround(Math.round(twoScroll.slot0*(d/twoScroll.d0)), twoScroll.anchorMin, y)){
+          twoScroll.lastY=y; return;
+        }
+      }
+    }
+    var dy=y-twoScroll.lastY; twoScroll.lastY=y;
     var el=twoScroll.el;
-    if(el===document.scrollingElement||el===document.documentElement) window.scrollBy(0,-d);
-    else el.scrollTop-=d;
+    if(el===document.scrollingElement||el===document.documentElement) window.scrollBy(0,-dy);
+    else el.scrollTop-=dy;
   }
 
   /* menu openers shared by touch long-press (mouse still uses the contextmenu handler) */
@@ -3167,7 +3205,9 @@ footer b{color:var(--text-2)}
   function touchDown(ev){
     if(ev.target.closest("#editor")||ev.target.closest(".menu")||ev.target.closest("#sms")||ev.target.closest("#resched")) return;
     var t=ev.target;
-    var naEl=t.closest(".blk,.wblk,.drop,.person");   /* elements with touch-action:none — native scroll is off here */
+    /* blocks and drops own their gesture; the grid is included so a pinch works on empty
+       space too, not just when a finger happens to land on a block */
+    var naEl=t.closest(".blk,.wblk,.drop,.person")||t.closest("#gridwrap");
     if(naEl){
       ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
       if(ptrs.size>=2){ enterTwoScroll(ev); return; }   /* a second finger on content = scroll, not drag */
@@ -3266,6 +3306,24 @@ footer b{color:var(--text-2)}
     clearTimeout(refitT);
     refitT=setTimeout(function(){ if(!onWeek()) doFit(); },160);
   });
+
+  /* iOS Safari handles pinch with its own gesture events and can claim the gesture before
+     pointer events ever see it, so hook those directly where they exist. ev.scale is the
+     ratio since the pinch began, which maps straight onto the slot height. */
+  (function(){
+    var gz=null;
+    gridwrap.addEventListener("gesturestart",function(ev){
+      if(onWeek()) return;
+      ev.preventDefault();
+      gz={slot0:SLOT, anchorMin:minuteAtY(ev.clientY), y:ev.clientY};
+    },{passive:false});
+    gridwrap.addEventListener("gesturechange",function(ev){
+      if(!gz) return;
+      ev.preventDefault();
+      zoomAround(Math.round(gz.slot0*ev.scale), gz.anchorMin, gz.y);
+    },{passive:false});
+    gridwrap.addEventListener("gestureend",function(ev){ if(gz){ ev.preventDefault(); gz=null; } },{passive:false});
+  })();
 
   /* Offline shell. Only registers over https (or localhost) — opening the file directly
      from disk simply skips it, which is why local testing still behaves normally. */
