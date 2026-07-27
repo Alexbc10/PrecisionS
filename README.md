@@ -143,9 +143,11 @@ roughly 99–128px depending on the iPad.
 called yet, blue set up but needs a text before arrival, green contacted. The **4px left
 edge** keeps the job status from the Bible (active / waiting / paused / completed). Morning
 work is therefore "clear the red", while the left edge still tells you what kind of job it
-is. **Tap the small circle in a block's bottom-left corner to change it** — one tap cycles
+is. **Tap the small circle in a block's top-right corner to change it** — one tap cycles
 not called -> needs a text -> contacted -> back. Hollow means nobody has called yet, filled
 means done, so the morning is a lap of the board tapping circles until no red is left. The
+circle is anchored to the top edge, so a block expanding underneath it never moves it out
+from under your finger. The
 press-and-hold menu can still set a state directly. A newly placed block starts as *not
 called yet*, which is the honest default.
 
