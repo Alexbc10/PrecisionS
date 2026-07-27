@@ -345,6 +345,11 @@ a.jn{color:var(--accent);text-decoration:none;border-bottom:1.5px solid var(--ac
              text-transform:uppercase;letter-spacing:.4px;color:var(--text-2);cursor:pointer}
 .menu button:hover{background:var(--surface-2);color:var(--accent)}
 .menu hr{border:0;border-top:1px solid var(--border-2);margin:4px 6px}
+.menu .menu-lbl{font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+      color:var(--text-3);padding:5px 14px 3px}
+.menu button.crewbtn{font-family:var(--font-cond);font-size:13.5px;text-transform:none;
+      letter-spacing:.2px;color:var(--text)}
+.menu button.crewbtn .cw-empty{color:var(--text-3);font-style:italic}
 
 #resched{position:fixed;display:none;z-index:250;background:var(--surface);border:1px solid var(--border);
          border-radius:var(--radius-lg);box-shadow:0 14px 44px rgba(0,0,0,.32);padding:14px;width:240px}
@@ -555,7 +560,24 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .wblk:hover .wn{display:block}
 .wblk.drag{opacity:.5;z-index:40}
 /* --- Touch (iPad) additive layer: mouse behaviour above is unchanged --- */
-.blk,.wblk,.drop,.person,.grip,.grip-top{touch-action:none}
+/* Resize handles and the weekly board still own their gesture outright — they're small,
+   deliberate targets. Blocks and drops cover most of the screen, so a finger starting on
+   one must be able to SCROLL the page. They only capture the gesture once tapped
+   ("armed"), which is what makes drag-to-move possible without trapping every swipe. */
+.hint-touch{display:none}
+@media (pointer:coarse){ .hint-mouse{display:none} .hint-touch{display:inline} }
+.wblk,.person,.grip,.grip-top{touch-action:none}
+.blk,.drop{touch-action:pan-y}
+.blk.armed,.drop.armed{touch-action:none}
+.blk.armed{box-shadow:0 0 0 2px var(--accent),0 8px 22px rgba(0,0,0,.28);z-index:14}
+.drop.armed{box-shadow:0 0 0 2px var(--accent);border-color:var(--accent)}
+/* only worth saying on a touch device — mouse drags immediately */
+@media (pointer:coarse){
+  .blk.armed::after,.drop.armed::after{content:"drag me";position:absolute;right:4px;bottom:2px;
+    font-size:8.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--accent);opacity:.85;pointer-events:none}
+  .drop.armed{position:relative}
+}
 .blk.peek{height:auto !important;overflow:visible;z-index:46;box-shadow:0 8px 22px rgba(0,0,0,.26)}
 .wblk.peek{height:auto !important;overflow:visible;z-index:30;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .wblk.peek .wn{display:block}
@@ -654,7 +676,8 @@ footer b{color:var(--text-2)}
   <section class="view" id="view-board">
     <div class="sec-title">
       <span>02</span> Daily Board
-      <span class="hint">Drag blocks between crews, times, and back to Drops · drag the top or bottom edge to resize · drag a name onto a column · right-click a block to text/cancel it · right-click a crew header to text their whole day</span>
+      <span class="hint hint-mouse">Drag blocks between crews, times, and back to Drops · drag the top or bottom edge to resize · drag a name onto a column · right-click a block to text/cancel it · right-click a crew header to text their whole day</span>
+      <span class="hint hint-touch">Tap a block to pick it up, then drag it · swipe anywhere to scroll · press and hold for the menu · hold a drop to send it straight to a crew</span>
     </div>
 
     <div class="board">
@@ -817,9 +840,16 @@ footer b{color:var(--text-2)}
 <input type="file" id="importfile" accept="application/json,.json" style="display:none">
 
 <div class="menu" id="dmenu">
+  <div class="menu-lbl">Send to crew</div>
+  <div id="dmenu-crews"></div>
+  <hr>
   <button data-act="memo">&#128221; Attach / edit memo&#8230;</button>
   <button data-act="resched">&#128197; Move to another day\u2026</button>
   <button data-act="remove">&#128465; Remove from drops</button>
+</div>
+
+<div class="menu" id="nmenu">
+  <button data-act="removemember">&#128683; Take off this crew</button>
 </div>
 
 <div class="menu" id="hmenu">
@@ -1550,6 +1580,8 @@ footer b{color:var(--text-2)}
     colsEl.querySelectorAll(".col.hot").forEach(function(c){c.classList.remove("hot");});
     headsEl.querySelectorAll(".crewhead.hot").forEach(function(h){h.classList.remove("hot");});
     dropCard.classList.remove("hot");
+    /* a finished drag releases the armed element back to scrolling */
+    document.querySelectorAll(".armed").forEach(function(e){ e.classList.remove("armed"); });
   }
   function find(id){
     var l=A[today()]||[];
@@ -1838,8 +1870,35 @@ footer b{color:var(--text-2)}
   function hideMenus(){ bmenu.style.display="none"; kmenu.style.display="none";
     var d=$("#dmenu"); if(d) d.style.display="none";
     var h=$("#hmenu"); if(h) h.style.display="none";
-    var dm=$("#datamenu"); if(dm) dm.style.display="none"; }
+    var dm=$("#datamenu"); if(dm) dm.style.display="none";
+    var nmn=$("#nmenu"); if(nmn) nmn.style.display="none"; }
+
+  /* Taking someone off a crew is destructive and used to fire on a bare tap — far too easy
+     to hit by accident on an iPad. It now goes through a menu. */
+  var ctxName=null;
+  function openNameMenu(name,x,y){
+    hideMenus(); ctxName=name;
+    var nmn=$("#nmenu");
+    nmn.querySelector('[data-act="removemember"]').innerHTML="&#128683; Take "+esc(name)+" off this crew";
+    nmn.style.display="block";
+    var mw=nmn.offsetWidth||220, mh=nmn.offsetHeight||60;
+    nmn.style.left=Math.max(6,Math.min(x,window.innerWidth-mw-6))+"px";
+    nmn.style.top=Math.max(6,Math.min(y,window.innerHeight-mh-6))+"px";
+  }
+  function removeFromCrew(name){
+    crews.forEach(function(c){ var k=c.members.indexOf(name); if(k>=0) c.members.splice(k,1); });
+    renderHeads(); renderPeople(); resizeCols();
+  }
+  $("#nmenu").addEventListener("click",function(ev){
+    var b=ev.target.closest("button"); if(!b||!ctxName) return;
+    if(b.dataset.act==="removemember") removeFromCrew(ctxName);
+    ctxName=null; hideMenus();
+  });
   document.addEventListener("contextmenu",function(ev){
+    var nmR=ev.target.closest(".cn span");
+    if(nmR && nmR.dataset.name){
+      ev.preventDefault(); hideMenus(); openNameMenu(nmR.dataset.name, ev.clientX, ev.clientY); return;
+    }
     var head=ev.target.closest(".crewhead");
     if(head && head.dataset.crew){
       ev.preventDefault(); hideMenus(); openHeaderMenu(head.dataset.crew, ev.clientX, ev.clientY); return;
@@ -1895,6 +1954,8 @@ footer b{color:var(--text-2)}
       openResched("drop", ctxDrop.id, ctxDrop.date);
     } else if(b.dataset.act==="memo"){
       openMemoDrop(ctxDrop.id, ctxDrop.date);
+    } else if(b.dataset.act==="tocrew"){
+      assignDropToCrew(ctxDrop.id, b.dataset.crew);
     }
     hideMenus();
   });
@@ -2707,11 +2768,43 @@ footer b{color:var(--text-2)}
     bmenu.style.left=Math.min(x,window.innerWidth-220)+"px";
     bmenu.style.top=Math.min(y,window.innerHeight-320)+"px";
   }
+  /* When the outstanding list is long you can't see the board to drag onto, so every
+     crew is offered straight from the drop's own menu. */
+  function fillDropCrews(){
+    var box=$("#dmenu-crews"); if(!box) return;
+    box.innerHTML="";
+    crews.forEach(function(c,i){
+      var b=document.createElement("button");
+      b.className="crewbtn"; b.dataset.act="tocrew"; b.dataset.crew=c.id;
+      b.innerHTML= c.members.length
+        ? "→ &nbsp;"+esc(sortMembers(c.members).join(" / "))
+        : '→ &nbsp;<span class="cw-empty">column '+(i+1)+' — empty</span>';
+      box.appendChild(b);
+    });
+  }
   function openDropMenu(did,date,x,y){
     hideMenus(); ctxDrop={id:did,date:date};
+    fillDropCrews();
     dmenu.style.display="block";
-    dmenu.style.left=Math.min(x,window.innerWidth-220)+"px";
-    dmenu.style.top=Math.min(y,window.innerHeight-140)+"px";
+    var mw=dmenu.offsetWidth||230, mh=dmenu.offsetHeight||300;
+    dmenu.style.left=Math.max(6,Math.min(x,window.innerWidth-mw-6))+"px";
+    dmenu.style.top=Math.max(6,Math.min(y,window.innerHeight-mh-6))+"px";
+  }
+  function assignDropToCrew(dropId,crewId){
+    var list=D[today()]||[], d=null;
+    for(var i=0;i<list.length;i++) if(list[i].id===dropId){ d=list[i]; break; }
+    if(!d) return;
+    var s=nextFreeStart(crewId), na;
+    if(d.kind==="note"){
+      na={id:d.id,kind:"note",text:d.text,crew:crewId,s:s,e:Math.min(s+30,DAY_END)};
+    } else {
+      var j=job(d.jobId);
+      na={id:uid(),jobId:d.jobId,crew:crewId,s:s,e:Math.min(s+60,DAY_END),
+          body:j.note,billTo:j.billTo,memo:d.memo||null};
+    }
+    D[today()]=list.filter(function(x){return x.id!==dropId;});
+    placeInCrew(na); renderDrops(); if(onWeek()) renderDock();
+    toast("Sent to "+crewName(crewId)+" at "+fmtAmPm(s));
   }
   var hmenuCrew=null;
   function openHeaderMenu(crewId,x,y){
@@ -2978,31 +3071,50 @@ footer b{color:var(--text-2)}
         blk=t.closest(".blk"), drp=t.closest(".drop"), per=t.closest(".person"),
         head=t.closest(".crewhead"), nm=t.closest(".cn span"),
         sg=t.closest("[data-sign]"), tr=t.closest("tr[data-job]");
-    if(!(grip||gripT||blk||drp||per||head||nm||sg||tr)) return;   /* nothing here — let the page scroll */
+    if(!(grip||gripT||blk||drp||per||head||nm||sg||tr)){ disarmAll(); return; }   /* nothing here — let the page scroll */
 
     var x=ev.clientX, y=ev.clientY;
     pending={x0:x,y0:y,long:false,start:null,menu:null,tap:null};
 
+    /* A block or drop only becomes draggable once tapped. Until then the finger belongs to
+       the page, so a swipe scrolls instead of dragging the thing you happened to touch. */
+    var blkReady = blk && blk.classList.contains("armed");
+    var drpReady = drp && drp.classList.contains("armed");
+
     if(gripT&&blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); drag={mode:"resizeTop",id:blk.dataset.id,el:blk}; }; }
     else if(grip&&blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); drag={mode:"resize",id:blk.dataset.id,el:blk}; }; }
-    else if(blk){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); var r=blk.getBoundingClientRect(); drag={mode:"move",id:blk.dataset.id,el:blk,dy:clamp(y-r.top,0,r.height)}; }; }
-    else if(drp){ pending.start=function(){ drag={mode:"new",dropId:drp.dataset.drop,dy:10}; drp.style.opacity=".4"; }; }
+    else if(blkReady){ pending.start=function(){ blk.classList.remove("peek"); blk.classList.add("drag"); var r=blk.getBoundingClientRect(); drag={mode:"move",id:blk.dataset.id,el:blk,dy:clamp(y-r.top,0,r.height)}; }; }
+    else if(drpReady){ pending.start=function(){ drag={mode:"new",dropId:drp.dataset.drop,dy:10}; drp.style.opacity=".4"; }; }
     else if(per){ pending.start=function(){ drag={mode:"person",name:per.dataset.person,el:per,x0:x,y0:y}; per.classList.add("drag"); }; }
 
     pending.menu=function(){
-      if(blk) openBlockMenu(blk.dataset.id,x,y);
+      if(nm) openNameMenu(nm.dataset.name,x,y);          /* before .crewhead — a name sits inside one */
+      else if(blk) openBlockMenu(blk.dataset.id,x,y);
       else if(drp) openDropMenu(drp.dataset.drop, drp.dataset.date||today(), x,y);
       else if(head&&head.dataset.crew) openHeaderMenu(head.dataset.crew,x,y);
       else if(tr) openJobMenu(tr.dataset.job,x,y);
     };
     pending.tap=function(){
       if(sg){ var jj=job(sg.dataset.sign); jj.signed=!jj.signed; renderBible(); return; }
-      if(nm){ var who=nm.dataset.name; crews.forEach(function(c){var k=c.members.indexOf(who); if(k>=0) c.members.splice(k,1);}); renderHeads(); renderPeople(); return; }
+      if(nm){ return; }                                   /* removing someone is menu-only now */
       if(per){ var rec=roster.filter(function(z){return z.name===per.dataset.person;})[0]; if(rec) rec.on=!rec.on; renderHeads(); renderPeople(); return; }
-      if(blk){ document.querySelectorAll(".blk.peek").forEach(function(b){ if(b!==blk) b.classList.remove("peek"); }); blk.classList.toggle("peek"); return; }
+      if(blk){
+        var wasArmed=blk.classList.contains("armed");
+        disarmAll();
+        document.querySelectorAll(".blk.peek").forEach(function(b){ if(b!==blk) b.classList.remove("peek"); });
+        if(wasArmed){ blk.classList.remove("peek"); }
+        else { blk.classList.add("armed"); blk.classList.add("peek"); }
+        return;
+      }
+      if(drp){
+        var dArmed=drp.classList.contains("armed");
+        disarmAll();
+        if(!dArmed) drp.classList.add("armed");
+        return;
+      }
     };
 
-    var hasMenu = blk||drp||(head&&head.dataset.crew)||tr;
+    var hasMenu = nm||blk||drp||(head&&head.dataset.crew)||tr;
     if(hasMenu){
       lpTimer=setTimeout(function(){
         if(!pending) return;
@@ -3011,7 +3123,12 @@ footer b{color:var(--text-2)}
         pending.menu(); menuJustOpened=Date.now(); clearLP();
       },500);
     }
-    ev.preventDefault();
+    /* Only swallow the gesture when we're actually going to drag it. Everything else must
+       stay scrollable — that's the whole point of arming. */
+    if(grip||gripT||blkReady||drpReady||per) ev.preventDefault();
+  }
+  function disarmAll(except){
+    document.querySelectorAll(".armed").forEach(function(e){ if(e!==except) e.classList.remove("armed"); });
   }
   function pendingMove(ev){
     if(!pending||pending.long) return;
