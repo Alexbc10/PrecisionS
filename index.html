@@ -204,12 +204,20 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
 .slotline{position:absolute;left:0;right:0;border-top:1px solid var(--grid-line);pointer-events:none}
 .slotline.hour{border-top-color:var(--grid-hour)}
 
+/* Two channels on one block. The FILL is the homeowner's contact state — the thing that
+   changes every morning and that a crew arriving to an empty house depends on. The 4px
+   LEFT BORDER keeps the job status carried over from the Bible, so nothing is lost. */
 .blk{position:absolute;left:3px;right:3px;border-radius:5px;padding:4px 6px;
-     border:1.5px solid var(--st-active);border-left-width:4px;background:var(--st-active-bg);
+     border:1.5px solid var(--st-paused);border-left-width:4px;background:var(--st-paused-bg);
      overflow:hidden;cursor:grab;user-select:none;box-shadow:var(--shadow-sm)}
-.blk.waiting{border-color:var(--st-wait);background:var(--st-wait-bg)}
-.blk.paused{border-color:var(--st-paused);background:var(--st-paused-bg)}
-.blk.done{border-color:var(--st-done);background:var(--st-done-bg);opacity:.72}
+.blk.c-none{border-color:var(--st-paused);background:var(--st-paused-bg)}
+.blk.c-text{border-color:var(--st-wait);background:var(--st-wait-bg)}
+.blk.c-done{border-color:var(--st-active);background:var(--st-active-bg)}
+/* declared after the fill so the left edge wins its own colour back */
+.blk.s-active{border-left-color:var(--st-active)}
+.blk.s-waiting{border-left-color:var(--st-wait)}
+.blk.s-paused{border-left-color:var(--st-paused)}
+.blk.s-done{border-left-color:var(--st-done);opacity:.72}
 .blk.drag{opacity:.5;cursor:grabbing;z-index:40;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 .blk.note{border:1.5px solid #d9a441;border-left-width:4px;background:#fdf7e6;box-shadow:var(--shadow-sm)}
 [data-theme="dark"] .blk.note{background:#2a230f;border-color:#c1913f}
@@ -671,6 +679,9 @@ body.weekmode{padding-bottom:22vh}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;font-weight:700;
         letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);margin:10px 2px 0}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.legend i.lg-edge{width:4px;height:12px;border-radius:1px;vertical-align:-2px}
+.legend .lg-h{font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
+      color:var(--text-3);margin-left:4px}
 footer{margin:14px 2px 0;font-size:12px;color:var(--text-3);line-height:1.65;max-width:940px}
 footer b{color:var(--text-2)}
 </style>
@@ -765,10 +776,15 @@ footer b{color:var(--text-2)}
     </div>
 
     <div class="legend">
-      <span><i style="background:var(--st-active)"></i>Active</span>
-      <span><i style="background:var(--st-wait)"></i>Waiting</span>
-      <span><i style="background:var(--st-paused)"></i>Paused</span>
-      <span><i style="background:var(--st-done)"></i>Completed</span>
+      <span class="lg-h">Block colour — homeowner</span>
+      <span><i style="background:var(--st-active)"></i>Contacted</span>
+      <span><i style="background:var(--st-wait)"></i>Needs a text</span>
+      <span><i style="background:var(--st-paused)"></i>Not called yet</span>
+      <span class="lg-h">Left edge — job status</span>
+      <span><i class="lg-edge" style="background:var(--st-active)"></i>Active</span>
+      <span><i class="lg-edge" style="background:var(--st-wait)"></i>Waiting</span>
+      <span><i class="lg-edge" style="background:var(--st-paused)"></i>Paused</span>
+      <span><i class="lg-edge" style="background:var(--st-done)"></i>Completed</span>
     </div>
   </section>
   <!-- ============ WEEKLY ============ -->
@@ -879,6 +895,10 @@ footer b{color:var(--text-2)}
   <button data-act="edit">Edit block info…</button>
   <button data-act="text">&#128241; Text crew…</button>
   <button data-act="memo">&#128221; Add memo to block&#8230;</button>
+  <hr>
+  <button data-act="k-done">Homeowner contacted</button>
+  <button data-act="k-text">Needs a text before arrival</button>
+  <button data-act="k-none">Not called yet</button>
   <button data-act="cancel">&#10060; Cancel job</button>
   <button data-act="uncancel">&#8617; Un-cancel job</button>
   <hr>
@@ -1079,6 +1099,10 @@ footer b{color:var(--text-2)}
   /* Street and city are split onto separate lines on a block. The street is the identifier;
      the city answers "who's near the new Coquitlam job?" at a glance, which is half of what
      dispatch reads the board for. Keeping them on one line truncated both. */
+  /* Homeowner contact is per booking, not per job — the same job on another day needs its
+     own call. Unset means nobody has called yet, which is what a fresh block deserves. */
+  var CONTACT={none:"Not called yet",text:"Needs a text before arrival",done:"Homeowner contacted"};
+  function contactOf(a){ return (a && CONTACT[a.contact]) ? a.contact : "none"; }
   function shortAddr(a){ var s=(a||"").split(",")[0].trim(); return s||(a||""); }
   function addrCity(a){ var p=(a||"").split(","); return p.length>1?p.slice(1).join(", ").trim():""; }
   function job(id){ for(var i=0;i<jobs.length;i++) if(jobs[i].id===id) return jobs[i]; }
@@ -1179,20 +1203,20 @@ footer b{color:var(--text-2)}
     "0":[
       {id:"a1",jobId:"J1",crew:"c1",s:7*60+30,e:9*60,
        body:"New claim - remove laminate and pad - get work auth\n-lockbox 344",
-       contacts:[{role:"Owner",name:"Jane Smith",phone:"778-555-9001"}]},
+       contacts:[{role:"Owner",name:"Jane Smith",phone:"778-555-9001",contact:"done"}]},
       {id:"n1",kind:"note",crew:"c1",s:7*60+30,e:8*60+30,
        text:"Clean & load machines, check hardware mat system before leaving"},
       {id:"a2",jobId:"J2",crew:"c1",s:13*60,e:14*60+30,
        body:"Monitor basement\n-access -homeowner\n7784444444",
-       memo:"Homeowner wants a call 30 min ahead — private reminder, don't text this to the crew"},
+       memo:"Homeowner wants a call 30 min ahead — private reminder, don't text this to the crew",contact:"done"},
       {id:"a3",jobId:"J10",crew:"c2",s:8*60,e:9*60+30,
        body:"Check dehu, swap filters\n-strata access thru manager",
-       contacts:[{role:"Building mgr",name:"Coastal Strata",phone:"778-555-9010"},
+       contacts:[{role:"Building mgr",name:"Coastal Strata",phone:"778-555-9010",contact:"text"},
                  {role:"Unit 303 tenant",name:"K. Ross",phone:"778-555-9021"},
                  {role:"Unit 403 owner",name:"P. Diaz",phone:"778-555-9022"}]},
-      {id:"a4",jobId:"J4",crew:"c2",s:11*60,e:14*60,body:"Destroy wall - confirm scope w/ PM first"},
+      {id:"a4",jobId:"J4",crew:"c2",s:11*60,e:14*60,body:"Destroy wall - confirm scope w/ PM first",contact:"none"},
       {id:"a5",jobId:"J3",crew:"c3",s:9*60+30,e:11*60,
-       body:"Monitor only - do NOT start demo, asbestos pending",billTo:"WO-40881"}
+       body:"Monitor only - do NOT start demo, asbestos pending",billTo:"WO-40881",contact:"text"}
     ],
     "1":[
       {id:"a95",jobId:"J10",crew:"c1",s:8*60,e:9*60+30, body:"Pull equipment, final readings"},
@@ -1370,7 +1394,8 @@ footer b{color:var(--text-2)}
       col.appendChild(el); return;
     }
     var j=job(a.jobId);
-    el.className="blk "+(a.colour||j.status)+(a.cancelled?" cancelled":"")+(a.memo?" hasmemo":"");
+    el.className="blk c-"+contactOf(a)+" s-"+(a.colour||j.status)+
+                 (a.cancelled?" cancelled":"")+(a.memo?" hasmemo":"");
     place(el,a);
     /* Bill-to badge takes the work order's place on the id line. */
     var second = a.billTo ? '<span class="badge b-amber">Bill to → '+esc(a.billTo)+'</span>'
@@ -2009,6 +2034,10 @@ footer b{color:var(--text-2)}
       kmenu.querySelector('[data-act="delblock"]').style.display = nt?"none":"block";
       kmenu.querySelector('[data-act="text"]').textContent = nt?"\uD83D\uDCF1 Text this note\u2026":"\uD83D\uDCF1 Text crew\u2026";
       kmenu.querySelector('[data-act="memo"]').style.display = nt?"none":"block";
+    ["k-done","k-text","k-none"].forEach(function(k){
+      kmenu.querySelector('[data-act="'+k+'"]').style.display = nt?"none":"block"; });
+      ["k-done","k-text","k-none"].forEach(function(k){
+        kmenu.querySelector('[data-act="'+k+'"]').style.display = nt?"none":"block"; });
       kmenu.querySelector('[data-act="memo"]').textContent = (ca&&ca.memo)?"\uD83D\uDCDD Edit attached memo\u2026":"\uD83D\uDCDD Add memo to block\u2026";
       kmenu.style.display="block";
       var kw=kmenu.offsetWidth||210, kh=kmenu.offsetHeight||300;
@@ -2149,6 +2178,13 @@ footer b{color:var(--text-2)}
         else D[today()].push({id:uid("d"),jobId:a.jobId,carried:false});
         var el=colsEl.querySelector('[data-id="'+a.id+'"]'); if(el) el.remove();
         renderDrops(); layout();
+      }
+    } else if(b.dataset.act.indexOf("k-")===0){
+      var ck=find(ctxBlk);
+      if(ck && !isNote(ck)){
+        ck.contact=b.dataset.act.slice(2);
+        var cel=colsEl.querySelector('[data-id="'+ck.id+'"]');
+        if(cel){ cel.remove(); addBlock(ck); layout(); }
       }
     } else if(b.dataset.act==="delblock"){
       var db=find(ctxBlk);

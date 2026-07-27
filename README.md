@@ -139,6 +139,17 @@ the smallest current iPad. Verified at every common size (landscape CSS pixels):
 Ten crews is the ceiling set by trucks, so the board lays out for ten and columns land at
 roughly 99–128px depending on the iPad.
 
+**A block carries two colours.** The **fill** is the homeowner's contact state — red not
+called yet, blue set up but needs a text before arrival, green contacted. The **4px left
+edge** keeps the job status from the Bible (active / waiting / paused / completed). Morning
+work is therefore "clear the red", while the left edge still tells you what kind of job it
+is. Set it from the block's press-and-hold menu; a newly placed block starts as *not called
+yet*, which is the honest default.
+
+Note that the Bible and the board use the same palette for different questions — but the
+question is the same shape in both: red means someone has to do something, blue means
+waiting on a step, green means good to go.
+
 **Addresses stay readable**, which is what the board is really for. A block shows the
 street on one line and the **city on the line below it** — the street identifies the job,
 the city answers "who's near the new Coquitlam call?" without reading anything else.
