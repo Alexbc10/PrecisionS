@@ -238,8 +238,11 @@ main{padding:14px 20px 30px;max-width:1900px;margin:0 auto}
 .blk:hover:not(.drag){height:auto !important;overflow:visible;z-index:46;
                       box-shadow:0 8px 22px rgba(0,0,0,.26)}
 .blk .addr{font-family:var(--font-cond);font-size:13px;font-weight:800;letter-spacing:.3px;
-           text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-           color:var(--text);line-height:1.2}
+           text-transform:uppercase;color:var(--text);line-height:1.15;
+           /* wrap to a second line rather than truncate — the address is the one thing
+              that has to be readable at a glance (strata units are the long case) */
+           display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+           overflow:hidden;overflow-wrap:anywhere}
 .blk .ids{font-size:9px;font-weight:700;letter-spacing:.3px;color:var(--text-3);
           line-height:1.4;margin-top:1px}
 .blk .tw{position:absolute;right:5px;bottom:4px;font-family:var(--font-cond);font-size:12.5px;
@@ -621,6 +624,12 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 }
 /* Collapse the drops row to give the grid its height back — worth roughly a quarter more
    block height on a 10.2" iPad. The titles stay visible so nothing feels lost. */
+/* an unstaffed column collapses to a marker — no room, and nothing to show.
+   min-width has to be released or the slim width can't take effect and the row overflows. */
+.col.slim,.crewhead.slim{min-width:0}
+.crewhead.slim .cs{display:none}
+.crewhead.slim .cn{font-size:9px;letter-spacing:0}
+.crewhead.slim{padding:5px 3px}
 .collapsebtn{margin-left:auto;border:1px solid var(--border);background:var(--surface);
       color:var(--text-2);border-radius:5px;width:26px;height:22px;cursor:pointer;
       font-size:11px;line-height:1;padding:0}
@@ -1057,6 +1066,9 @@ footer b{color:var(--text-2)}
     {id:"J10",job:"26-00132", wo:"WO-40014", addr:"2200 seaview dr unit 103", start:shortOf(new Date(YR,MO,NOW.getDate()-3)), status:"active", signed:true,
      note:"Drying in progress, 4 air movers 1 dehu"}
   ];
+  /* On the board the city is noise — the dispatcher knows the area, and it costs half the
+     column. The full address still goes to the Bible, the editor and the crew's text. */
+  function shortAddr(a){ var s=(a||"").split(",")[0].trim(); return s||(a||""); }
   function job(id){ for(var i=0;i<jobs.length;i++) if(jobs[i].id===id) return jobs[i]; }
 
   /* Crews are rebuilt every morning, so they belong to a date — not to the branch.
@@ -1352,7 +1364,7 @@ footer b{color:var(--text-2)}
     var second = a.billTo ? '<span class="badge b-amber">Bill to → '+esc(a.billTo)+'</span>'
                           : esc(j.wo);
     el.innerHTML=(a.cancelled?'<span class="cxbadge">Cancelled</span> ':'')+
-      '<div class="addr">'+esc(j.addr)+'</div>'+
+      '<div class="addr">'+esc(shortAddr(j.addr))+'</div>'+
       '<div class="ids">'+esc(j.job)+' &nbsp;·&nbsp; '+second+'</div>'+
       '<div class="body">'+esc(a.body).replace(/\n/g,"<br>")+'</div>'+
       (a.memo?'<div class="memo-in"><span class="mni">📝</span>'+esc(a.memo).replace(/\n/g,"<br>")+'</div>':'')+
@@ -1507,9 +1519,27 @@ footer b{color:var(--text-2)}
     var avail=gridwrap.clientWidth||document.querySelector(".board").clientWidth||1200;
     var gutW=(gutterEl&&gutterEl.offsetWidth)||52;
     var minW=window.matchMedia("(pointer:coarse),(max-height:1100px)").matches?88:96;
-    var w=Math.max(minW,Math.floor((avail-gutW)/Math.max(BASE_COLS,crews.length)));
-    colsEl.querySelectorAll(".col").forEach(function(c){ c.style.width=w+"px"; });
-    headsEl.querySelectorAll(".crewhead").forEach(function(h){ h.style.width=w+"px"; });
+    var slots=Math.max(BASE_COLS,crews.length);
+    var staffed=crews.filter(function(c){return c.members.length;}).length;
+    var EMPTY_W=38;
+    /* An unstaffed column is a placeholder, not a workspace. Slim them down and hand the
+       space to the crews that are actually out, so addresses stay readable. Ten staffed
+       crews falls back to even widths — nothing left to borrow. */
+    var widthFor={};
+    if(staffed>0 && staffed<slots){
+      var space=avail-gutW-(slots-staffed)*EMPTY_W;
+      var sw=Math.max(minW,Math.floor(space/staffed));
+      crews.forEach(function(c){ widthFor[c.id]=c.members.length?sw:EMPTY_W; });
+    } else {
+      var w=Math.max(minW,Math.floor((avail-gutW)/slots));
+      crews.forEach(function(c){ widthFor[c.id]=w; });
+    }
+    colsEl.querySelectorAll(".col").forEach(function(c){
+      var cw=widthFor[c.dataset.crew]; if(cw){ c.style.width=cw+"px"; c.classList.toggle("slim",cw===EMPTY_W); }
+    });
+    headsEl.querySelectorAll(".crewhead").forEach(function(h){
+      var hw=widthFor[h.dataset.crew]; if(hw){ h.style.width=hw+"px"; h.classList.toggle("slim",hw===EMPTY_W); }
+    });
     var bp=document.getElementById("bigplus");
     if(bp) bp.style.display = crews.length<BASE_COLS ? "block" : "none";
     layout(); syncGutter();

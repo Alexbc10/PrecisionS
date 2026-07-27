@@ -5,7 +5,7 @@
    fully offline — all state lives in localStorage, nothing is fetched at runtime.
 
    Bump CACHE when the app file changes, or iPads will keep serving the old one. */
-var CACHE = "precisionscheduler-v6";
+var CACHE = "precisionscheduler-v7";
 var SHELL = [
   "./",
   "./index.html",
