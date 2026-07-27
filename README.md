@@ -102,16 +102,28 @@ messaging. Renaming someone updates any crew they're already on.
 
 ## Putting it on an iPad
 
-The app needs to be served from a URL — a home-screen icon is a bookmark, not a local file.
-Once it's hosted over **https**, open it in Safari and **Share ▸ Add to Home Screen**.
-It then launches fullscreen with its own icon, and the included service worker keeps it
-working with no signal.
+Live at **https://alexbc10.github.io/Precisionscheduler/**
 
-Files that must ship together: `precisionscheduler.html`, `manifest.json`, `sw.js`,
-`icon-180.png`, `icon-192.png`, `icon-512.png`.
+On the iPad, open that URL in **Safari** (not Chrome — only Safari can install to the home
+screen), then **Share ▸ Add to Home Screen**. It launches fullscreen with its own icon, and
+the service worker keeps it working with no signal.
+
+A home-screen icon is a bookmark to a URL, not a local file — which is why it has to be
+hosted. Serving over https is also what lets the offline worker register.
+
+## Deploying a change
+
+This folder **is** the repo (`Alexbc10/Precisionscheduler`) and GitHub Pages serves it from
+the root, so what's here is exactly what's live.
+
+```
+git add -A && git commit -m "…" && git push
+```
+
+Pages redeploys in under a minute. **If you changed `index.html`, bump `CACHE` in `sw.js`
+first** (`precisionscheduler-v1` → `-v2`) or installed iPads keep serving the old version.
 
 ## Editing
 
-`precisionscheduler.html` holds the entire app — markup, styles, logic, logo.
-Edit it directly and refresh the browser. No template, no build step, no second copy.
-If you change it after deploying, bump `CACHE` in `sw.js` or iPads keep the old version.
+`index.html` holds the entire app — markup, styles, logic, logo.
+Edit it directly and refresh. No template, no build step, no second copy.
