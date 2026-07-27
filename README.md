@@ -123,6 +123,31 @@ git add -A && git commit -m "…" && git push
 Pages redeploys in under a minute. **If you changed `index.html`, bump `CACHE` in `sw.js`
 first** (`precisionscheduler-v1` → `-v2`) or installed iPads keep serving the old version.
 
+## iPad layout
+
+Built to show **ten crew columns and the whole 7:30–4 day at once, with no scrolling**, on
+the smallest current iPad. Verified at every common size (landscape CSS pixels):
+
+| iPad | Viewport | Columns | Whole day visible |
+|---|---|---|---|
+| mini | 1133 × 744 | 10 | yes |
+| 10.2" | 1080 × 810 | 10 | yes |
+| 10.9" / Air 11" | 1180 × 820 | 10 | yes |
+| Pro 11" | 1194 × 834 | 10 | yes |
+| Pro 12.9" / 13" | 1366 × 1024 | 10 | yes |
+
+Ten crews is the ceiling set by trucks, so the board lays out for ten and columns land at
+roughly 99–128px depending on the iPad.
+
+The **▾ button on the Drops title collapses the drops row**, handing that space back to the
+grid — worth about 25% more block height when you're concentrating on the schedule.
+
+The layout compacts automatically on any short screen (touch device, or a browser window
+under 1100px tall): smaller header and tabs, no board section-title, tighter block type,
+and drops flowing across the width instead of stacking down it. Zoom is fitted by measuring
+the real page rather than assuming a fixed chrome height, so it adapts to any device and
+re-fits when the iPad is rotated.
+
 ## Touch vs mouse
 
 On an iPad the board works by direct manipulation:
